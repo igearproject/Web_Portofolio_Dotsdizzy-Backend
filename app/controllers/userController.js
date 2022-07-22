@@ -6,6 +6,25 @@ const sendEmail=require('../../config/sendEmail');
 const Validator=require('fastest-validator');
 const v=new Validator();
 
+const profile=async(req,res)=>{
+    if(req.userId){
+        return res.json({
+            status:"success",
+            data:{
+                user:{
+                    id:req.userId,
+                    name:req.username,
+                    role:req.role,
+                }
+            }
+        });
+    }else{
+        return res.status(403).json({
+            status:"error",
+            message:"Access Denied"
+        });
+    }
+}
 const register=async(req,res)=>{
     const schema={
         name:{type:'string',empty:false,max:100},
@@ -310,6 +329,7 @@ const emailVerification=async(req,res)=>{
 }
 
 module.exports={
+    profile,
     register,
     login,
     logout,

@@ -3,6 +3,7 @@ const controller = require('../app/controllers/userController');
 const verifyToken = require('../app/middlewares/verifyToken');
 const router = express.Router();
 
+router.get('/me', verifyToken, controller.profile);
 router.post('/register', controller.register);
 router.post('/login', controller.login);
 router.post('/email-verification/:id/:token', controller.emailVerification);
