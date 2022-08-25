@@ -1,6 +1,7 @@
 const Projects=require('../../models/Projects');
 // const Categorys=require('../../models/Categorys');
 // const Images=require('../../models/Images');
+const  { ObjectID } = require("mongodb");
 const Validator=require('fastest-validator');
 const v=new Validator();
 
@@ -9,11 +10,22 @@ const add=async(req,res)=>{
         title:{type:'string',empty:false},
         description:{type:'string',empty:false},
         tags:{type:'string',optional:true},
-        url:{type:'string',empty:false},
+        url:{type:'string',empty:false,alphadash:true},
         metaKeyword:{type:'string',optional:true},
         metaDescription:{type:'string',optional:true},
         published:{type:'boolean',optional:true},
         showAtHome:{type:'boolean',optional:true},
+        categorys: { type: "array", items: {
+            type: "object", props: {
+                _id: { type: "objectID",ObjectID },
+                name: { type: "string", empty: false }
+            }
+        },optional:true},
+        images: { type: "array", items: {
+            type: "object", props: {
+                _id: { type: "objectID",ObjectID },
+            }
+        },optional:true},
     };
     const validate=v.validate(req.body,schema);
 
@@ -33,7 +45,9 @@ const add=async(req,res)=>{
             metaKeyword:req.body.metaKeyword,
             metaDescription:req.body.metaDescription,
             published:req.body.published,
-            showAtHome:req.body.showAtHome
+            showAtHome:req.body.showAtHome,
+            categorys:req.body.categorys,
+            images:req.body.images
         });
         return res.json({
             status:'success',
@@ -48,17 +62,59 @@ const add=async(req,res)=>{
 }
 
 const getAll=async(req,res)=>{
-    const data=await Projects.find().exec();
-    if(!data){
+    try{
+        const page=parseInt(req.query.page)-1||0;
+        const limit=parseInt(req.query.limit)||12;
+        const skip=page*limit;
+
+        const searchKey=req.query.searchKey||"";
+        const searchBy=req.query.searchBy||"title";
+        let sortBy=req.query.sortBy||"createdAt";
+        const sortOption=req.query.sortOption||"desc";
+        const category=req.query.category||"";
+        let filter={
+            [searchBy]:{$regex:searchKey,$options:"i"},
+            // "categorys.name":{
+            //     $regex:category,
+            //     $options:"i"
+            // }
+        }
+        if(category){
+            filter["categorys.name"]=category
+        }
+        // console.log(filter)
+        if(typeof sortBy==='object'){
+            sortBy=sortBy[0]
+        }
+        const total=await Projects.countDocuments(filter);
+        const data=await Projects.find(filter)
+        // .populate('categorys', null, { name: { $in: "Vektor" }})
+        // .sort({createdAt:'asc'})
+        .sort({[sortBy]:sortOption})
+        .skip(skip)
+        .limit(limit)
+        .exec();
+        if(!data){
+            return res.json({
+                status:'success',
+                data:[]
+            });
+        }
         return res.json({
             status:'success',
-            data:[]
+            data:data,
+            total,
+            limit,
+            page:page+1,
+            totalPage:Math.ceil(total/limit)
+        });
+
+    }catch(err){
+        return res.status(500).json({
+            status:'error',
+            message:"Intenal Server Error >> "+err.message
         });
     }
-    return res.json({
-        status:'success',
-        data:data
-    });
 }
 
 const getOne=async(req,res)=>{
@@ -94,6 +150,17 @@ const update=async(req,res)=>{
         metaDescription:{type:'string',optional:true},
         published:{type:'boolean',optional:true},
         showAtHome:{type:'boolean',optional:true},
+        categorys: { type: "array", items: {
+            type: "object", props: {
+                _id: { type: "objectID",ObjectID },
+                name: { type: "string", empty: false }
+            }
+        },optional:true},
+        images: { type: "array", items: {
+            type: "object", props: {
+                _id: { type: "objectID",ObjectID },
+            }
+        },optional:true},
     };
     const validate=v.validate(req.body,schema);
     if(validate.length){
@@ -120,14 +187,8 @@ const update=async(req,res)=>{
         if(req.body.metaDescription) data.metaDescription=req.body.metaDescription;
         if(typeof req.body.published!=undefined) data.published=req.body.published;
         if(typeof req.body.showAtHome!=undefined) data.showAtHome=req.body.showAtHome;
-        // data.title=req.body.title||data.title;
-        // data.description=req.body.description||data.description;
-        // data.tags=req.body.tags||data.tags;
-        // data.url=req.body.url||data.url;
-        // data.metaKeyword=req.body.metaKeyword||data.metaKeyword;
-        // data.metaDescription=req.body.metaDescription||data.metaDescription;
-        // if(typeof req.body.published!=undefined) data.published=req.body.published;
-        // if(typeof req.body.showAtHome!=undefined) data.showAtHome=req.body.showAtHome;
+        if(typeof req.body.categorys=="object") data.categorys=req.body.categorys;
+        if(typeof req.body.images=="object") data.images=req.body.images;
 
         await data.save();
 

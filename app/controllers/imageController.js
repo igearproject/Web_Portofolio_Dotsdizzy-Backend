@@ -8,9 +8,11 @@ const v=new Validator();
 
 
 const add=async(req,res)=>{
+    // console.log(req.body);
     const schema={
         alt_text:{type:'string',optional:true},
-        thumbnail:{type:'boolean',optional:true},
+        thumbnail:{type:'string',enum:['true','false'],optional:true},
+        // thumbnail:{type:'boolean',optional:true},
     };
     const validate=v.validate(req.body,schema);
 
@@ -29,12 +31,14 @@ const add=async(req,res)=>{
             folder: 'dotsdizzy'
         });
 
+        const thumbnail=req.body.thumbnail==="true"?true:false;
+
         const data=await Images.create({
             fileName:req.file.filename,
             cdnUrl:cdn.secure_url,
             cdnId:cdn.public_id,
             alt_text:req.body.alt_text,
-            thumbnail:req.body.thumbnail
+            thumbnail:thumbnail
         });
         return res.json({
             status:'success',
@@ -49,16 +53,62 @@ const add=async(req,res)=>{
 }
 
 const getAll=async(req,res)=>{
-    const data=await Images.find().exec();
+    const limit=parseInt(req.query.limit)||12;
+    const page=parseInt(req.query.page)-1||0;
+    // const skip=page*limit;
+    const last=req.query.last||'';
+    const searchBy=req.query.searchBy||'fileName';
+    const searchKey=req.query.searchKey||'';
+    const sortBy=req.query.sortBy||'createdAt';
+    const sortOption=req.query.sortOption||'desc';
+    let filter={
+        [searchBy]:{
+            $regex:searchKey,
+            $options:"i"
+        }
+    };
+    if(last){
+        if(sortOption==="desc"){
+            filter[sortBy]={$lt:last};
+        }else{
+            filter[sortBy]={$gt:last};
+        }
+        
+    }
+    const total=await Images.countDocuments({
+        [searchBy]:{
+            $regex:searchKey,
+            $options:"i"
+        }
+    });
+    const data=await Images.find(filter)
+        .sort({[sortBy]:sortOption})
+        // .skip(skip)
+        .limit(limit)
+        .exec();
     if(!data){
         return res.json({
             status:'success',
             data:[]
         });
     }
+    let next;
+    if(data.length>0){
+        next={
+            by:sortBy,
+            value:data[data.length-1][sortBy]
+        // [sortBy]:data[data.length-1][sortBy]
+        }
+    }
+    console.log(next);
     return res.json({
         status:'success',
-        data:data
+        data:data,
+        total,
+        limit,
+        next,
+        // page:page+1,
+        // totalPage:Math.ceil(total/limit)
     });
 }
 

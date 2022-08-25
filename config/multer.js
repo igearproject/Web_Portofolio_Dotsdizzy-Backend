@@ -16,8 +16,8 @@ module.exports=multer({
     }),
     fileFilter:(req,file,cb)=>{
         let ext=path.extname(file.originalname);
-        if(ext!=='.jpg' && ext!=='.png' && ext!=='.jpeg'){
-            cb(new Error("File must be image (.jpg/.jpeg/.png)"))
+        if(ext!=='.jpg' && ext!=='.png' && ext!=='.jpeg'  && ext!=='.svg'){
+            cb(new Error("File must be image (.jpg/.jpeg/.png/.svg)"))
         }
         cb(null,true);
     },

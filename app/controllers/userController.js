@@ -147,7 +147,8 @@ const login=async(req,res)=>{
     }catch(error){
         return res.status(500).json({
             status:'error',
-            message:error.message
+            message:'Timeout or Internal Server Error'
+            // message:error.message
         });
     }
 }
