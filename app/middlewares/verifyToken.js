@@ -32,7 +32,7 @@ module.exports=async (req,res,next)=>{
             });
         }
         req.userId=decode.userId;
-        req.username=decode.username;
+        req.username=user.name;
         req.role=decode.role;
     
         next()

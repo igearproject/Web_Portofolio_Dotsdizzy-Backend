@@ -93,6 +93,15 @@ const getAll=async(req,res)=>{
         .sort({[sortBy]:sortOption})
         .skip(skip)
         .limit(limit)
+        // .populate({
+        //     path : 'categorys._id', 
+        //     model : 'Categorys'
+        // })
+        // .populate({
+        //     path : 'images._id', 
+        //     model : 'Images'
+        // })
+        .populate("images")
         .exec();
         if(!data){
             return res.json({
@@ -117,6 +126,112 @@ const getAll=async(req,res)=>{
     }
 }
 
+const getAllPublish=async(req,res)=>{
+    try{
+        const page=parseInt(req.query.page)-1||0;
+        const limit=parseInt(req.query.limit)||12;
+        const skip=page*limit;
+
+        const searchKey=req.query.searchKey||"";
+        const searchBy=req.query.searchBy||"title";
+        let sortBy=req.query.sortBy||"createdAt";
+        const sortOption=req.query.sortOption||"desc";
+        const category=req.query.category||"";
+
+        const tags=req.query.tags||"";
+        
+        let filter={
+            [searchBy]:{$regex:searchKey,$options:"i"},
+            published:true,
+            'images':{
+                        // $exists : true,
+                        $ne : []
+                    }
+        }
+
+        if(tags){
+            filter["tags"]={$regex:tags,$options:"i"}
+        }
+
+        if(category){
+            filter["categorys.name"]=category
+        }
+        
+        // console.log(filter)
+        if(typeof sortBy==='object'){
+            sortBy=sortBy[0]
+        }
+        const total=await Projects.countDocuments(filter);
+        const data=await Projects.find(filter)
+        // .populate('categorys', null, { name: { $in: "Vektor" }})
+        // .sort({createdAt:'asc'})
+        .sort({[sortBy]:sortOption})
+        .skip(skip)
+        .limit(limit)
+        // .populate({
+        //     path : 'categorys._id', 
+        //     model : 'Categorys'
+        // })
+        .populate("images")
+        .exec();
+        if(!data){
+            return res.json({
+                status:'success',
+                data:[]
+            });
+        }
+        return res.json({
+            status:'success',
+            data:data,
+            total,
+            limit,
+            page:page+1,
+            totalPage:Math.ceil(total/limit)
+        });
+
+    }catch(err){
+        return res.status(500).json({
+            status:'error',
+            message:"Intenal Server Error"
+        });
+    }
+}
+
+const getOnePublish=async(req,res)=>{
+    try{
+        const data=await Projects.findOne({
+            url:req.params.url,
+            published:true
+        }).populate('images').exec();
+        let category=[]
+        data.categorys.map((data)=>{
+            category.push(data.name)
+        });
+        const recomendation=await Projects.find({
+            published:true,
+            "categorys.name":{$in:category},
+            'images':{$ne : []},
+            "_id":{$ne:data._id},
+        },["_id","url","images","title"]).populate('images').limit(4).exec();
+        if(!data){
+            return res.status(404).json({
+                status:'error',
+                message:'Project not found'
+            });
+        }
+        return res.json({
+            status:'success',
+            data:data,
+            recomendation:recomendation
+        });
+    }catch(error){
+        return res.status(500).json({
+            status:'error',
+            message:"Internal server error"
+        });
+    }
+}
+
 const getOne=async(req,res)=>{
     try{
         const data=await Projects.findOne({
@@ -125,7 +240,7 @@ const getOne=async(req,res)=>{
         if(!data){
             return res.status(404).json({
                 status:'error',
-                message:'Category not found'
+                message:'Project not found'
             });
         }
         return res.json({
@@ -235,6 +350,8 @@ const destroy=async(req,res)=>{
 module.exports={
     add,
     getAll,
+    getAllPublish,
+    getOnePublish,
     getOne,
     update,
     destroy

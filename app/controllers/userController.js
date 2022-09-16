@@ -12,7 +12,7 @@ const profile=async(req,res)=>{
             status:"success",
             data:{
                 user:{
-                    id:req.userId,
+                    _id:req.userId,
                     name:req.username,
                     role:req.role,
                 }

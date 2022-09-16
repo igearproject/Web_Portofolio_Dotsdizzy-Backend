@@ -9,7 +9,7 @@ router.post('/login', controller.login);
 router.post('/email-verification/:id/:token', controller.emailVerification);
 router.delete('/logout', verifyToken, controller.logout);
 router.put('/:id', verifyToken, controller.update);
-router.post('/:id/change-password', verifyToken, controller.changePassword);
+router.put('/:id/change-password', verifyToken, controller.changePassword);
 // router.get('/', controller.getAll);
 // router.get('/:id', controller.getOne);
 // router.delete('/:id', controller.destroy);
