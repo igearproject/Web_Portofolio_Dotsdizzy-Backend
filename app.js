@@ -19,7 +19,7 @@ const app = express();
 
 connectDB();
 // cors configure
-const whitelist = ['http://localhost:3000','http://127.0.0.1:3000']
+const whitelist = ['http://localhost:3000','http://127.0.0.1:3000','https://dotsdizzy.vercel.app', 'https://dotsdizzy.sipintek.com']
 const corsOptions = {
     origin:whitelist,
     credentials: true,
